@@ -26,7 +26,22 @@ SECRET_KEY = 'django-insecure-65lw(v04ur&7y#08+z^8&syyryw4hra5f$c1)e)1t5p)k1l(h5
 DEBUG = True
 
 ALLOWED_HOSTS = ['ec2-52-79-138-224.ap-northeast-2.compute.amazonaws.com',
-                'orderap.dkkim.shop']
+                'orderap.dkkim.shop',
+                '127.0.0.1']
+
+######################         추가          #################################################
+
+import requests
+EC2_PRIVATE_IP  =   None
+try:
+    EC2_PRIVATE_IP  =   requests.get('http://169.254.169.254/latest/meta-data/local-ipv4', timeout = 0.01).text
+except requests.exceptions.RequestException:
+    pass
+
+if EC2_PRIVATE_IP:
+    ALLOWED_HOSTS.append(EC2_PRIVATE_IP)
+
+###############################################################################################
 
 
 # Application definition
@@ -42,6 +57,7 @@ INSTALLED_APPS = [
     'boss',
     'delivery',
     'rest_framework',
+    'user'
 ]
 
 MIDDLEWARE = [

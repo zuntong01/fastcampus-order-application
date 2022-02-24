@@ -8,6 +8,8 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 
+from user.models import User
+
 # Create your views here.
 
 @csrf_exempt
@@ -16,9 +18,11 @@ def shop(request):
         #shop = Shop.objects.all()
         #serializer = ShopSerializer(shop, many=True)
         #return JsonResponse(serializer.data, safe=False)
-
-        shop = Shop.objects.all()
-        return render(request, 'order/shop_list.html', { 'shop_list':shop })
+        if User.objects.all().get(id=request.session['user_id']).user_type == 0:
+            shop = Shop.objects.all()
+            return render(request, 'order/shop_list.html', { 'shop_list':shop })
+        else:
+            return render(request, 'order/deny.html')
 
     elif request.method == 'POST':
         data = JSONParser().parse(request)
@@ -69,4 +73,3 @@ def order(request):
         order_list = Order.objects.all()
         return render(request, 'order/order_list.html', { 'order_list':order_list })
         
-    
