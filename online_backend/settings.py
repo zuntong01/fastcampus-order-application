@@ -29,7 +29,7 @@ ALLOWED_HOSTS = ['ec2-52-79-138-224.ap-northeast-2.compute.amazonaws.com',
                 'orderap.dkkim.shop',
                 '127.0.0.1']
 
-######################         추가          #################################################
+######################       EC2 private, public IP  추가          #################################################
 
 import requests
 EC2_PRIVATE_IP  =   None
@@ -41,7 +41,46 @@ except requests.exceptions.RequestException:
 if EC2_PRIVATE_IP:
     ALLOWED_HOSTS.append(EC2_PRIVATE_IP)
 
-###############################################################################################
+
+EC2_PUBLIC_IP  =   None
+try:
+    EC2_PUBLIC_IP  =   requests.get('http://169.254.169.254/latest/meta-data/public-ipv4', timeout = 0.01).text
+except requests.exceptions.RequestException:
+    pass
+
+if EC2_PUBLIC_IP:
+    ALLOWED_HOSTS.append(EC2_PUBLIC_IP)
+
+
+######################       ECS 내부 private IP 등록  #################################################
+
+def get_ecs_task_ips():
+    """
+    Retrieve the internal ip address(es) for task, if running with AWS ECS and awsvpc networking mode
+    Used to get ips to add to ALLOWED_HOSTS setting, for load balancer health checks
+    See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint.html
+    Uses V2 endpoint: http://169.254.170.2/v2/metadata (v3 not yet available on fargate)
+    :return: list of internal ip addresses
+    """
+    ip_addresses = []
+    try:
+        r = requests.get("http://169.254.170.2/v2/metadata", timeout=0.01)
+    except requests.exceptions.RequestException:
+        return []
+    if r.ok:
+        task_metadata = r.json()
+        for container in task_metadata['Containers']:
+            for network in container['Networks']:
+                if network['NetworkMode'] == 'awsvpc':
+                    ip_addresses.extend(network['IPv4Addresses'])
+    return list(set(ip_addresses))
+
+
+# Add ip(s) to ALLOWED HOSTS django setting
+ALLOWED_HOSTS += get_ecs_task_ips()
+
+#################################################################################################
+
 
 
 # Application definition
